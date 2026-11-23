@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>DOS Defender — network security simulation game</title>
+<meta name="description" content="DOS Defender is a retro network-security simulation: malicious requests flood your server and you must inspect, filter and block threats before the system collapses. A fast-paced browser game with a DOS-era terminal aesthetic.">
+<meta name="keywords" content="DOS Defender, network security game, firewall game, cyber defense game, retro game, terminal game, browser game, free online game">
+<meta name="author" content="CyberGames">
+<meta name="robots" content="index, follow">
+<meta name="theme-color" content="#030810">
+<meta property="og:type" content="website">
+<meta property="og:title" content="DOS Defender — network security simulation game">
+<meta property="og:description" content="Defend your server from waves of malicious requests in this retro network-security simulation. Inspect, filter and block threats before collapse.">
+<meta property="og:site_name" content="CyberGames">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="DOS Defender — network security simulation game">
+<meta name="twitter:description" content="A retro network-security simulation: filter malicious requests and keep your server alive.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VideoGame",
+  "name": "DOS Defender",
+  "description": "A retro network-security simulation where malicious requests flood your server. Inspect, filter and block threats before the system collapses.",
+  "genre": ["Simulation", "Strategy", "Retro"],
+  "gamePlatform": "Web Browser",
+  "playMode": "SinglePlayer",
+  "applicationCategory": "Game",
+  "isAccessibleForFree": true,
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Organization", "name": "CyberGames" }
+}
+</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+  --green:  #00ff88;
+  --red:    #ff3355;
+  --yellow: #ffcc00;
+  --blue:   #00aaff;
+  --dark:   #030810;
+  --panel:  rgba(0,255,136,0.06);
+  --border: rgba(0,255,136,0.18);
+  --text:   #a0ffcc;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html, body {
+  background: var(--dark);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text);
+  overflow: hidden;
+  height: 100%; width: 100%;
+  touch-action: none;
+}
+
+body::after {
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:999;
+  background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px);
+}
+
+.grid-bg {
+  position:fixed; inset:0; pointer-events:none; z-index:0;
+  background-image:
+    linear-gradient(rgba(0,255,136,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,136,0.03) 1px, transparent 1px);
+  background-size: 36px 36px;
+}
+
+.screen {
+  display:none; position:absolute; inset:0;
+  align-items:center; justify-content:center; flex-direction:column;
+  z-index:10;
+}
+.screen.active { display:flex; }
+.screen > * { position:relative; z-index:1; }
+
+/* ══════════ START ══════════ */
+#startScreen {
+  background: radial-gradient(ellipse at 50% 38%, #041a2e 0%, #030810 68%);
+  padding: 24px 20px; gap: 0;
+}
+.eyebrow {
+  font-size: 10px; letter-spacing: 6px;
+  color: var(--green); opacity: 0.65;
+  margin-bottom: 10px; text-align:center;
+}
+.title-main {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(42px, 10vw, 82px);
+  font-weight: 900; color: #fff;
+  letter-spacing: 6px; line-height:1; text-align:center;
+  text-shadow: 0 0 24px var(--green), 0 0 70px rgba(0,255,136,0.22);
+  animation: titlePulse 3s ease-in-out infinite; margin-bottom: 6px;
+}
+@keyframes titlePulse {
+  0%,100%{ text-shadow:0 0 24px var(--green),0 0 70px rgba(0,255,136,0.22); }
+  50%    { text-shadow:0 0 38px var(--green),0 0 100px rgba(0,255,136,0.38); }
+}
+.title-sub {
+  font-size: clamp(10px,2.8vw,13px); color: var(--blue);
+  letter-spacing: 2px; text-align:center; margin-bottom: 26px;
+}
+.desc-box {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 6px; padding: clamp(14px,3.5vw,20px) clamp(18px,5vw,30px);
+  max-width: 430px; width:100%;
+  margin-bottom: 22px;
+  font-size: clamp(12px,3.2vw,13px); line-height: 1.95; text-align:center;
+}
+.desc-box .bad  { color:var(--red);   font-weight:bold; }
+.desc-box .good { color:var(--green); font-weight:bold; }
+.desc-box strong { color:#fff; }
+
+.icons-demo {
+  display:flex; justify-content:center; align-items:center; gap:28px;
+  margin-bottom:24px;
+}
+.icon-card {
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  font-size: clamp(9px,2.5vw,11px); letter-spacing:2px;
+}
+.icon-card .lbl { opacity:0.65; }
+.icon-card .lbl.b { color:var(--red); }
+.icon-card .lbl.g { color:var(--green); }
+
+.start-btn {
+  font-family:'Orbitron',sans-serif;
+  font-size: clamp(13px,3.8vw,16px); font-weight:900; letter-spacing:3px;
+  padding: clamp(14px,3.5vw,18px) clamp(38px,10vw,54px);
+  background:var(--green); color:var(--dark);
+  border:none; border-radius:4px; cursor:pointer;
+  transition:all 0.2s; box-shadow:0 0 28px rgba(0,255,136,0.35);
+  margin-bottom:20px; min-height:52px;
+}
+.start-btn:active { transform:scale(0.96); }
+
+.sound-row {
+  display:flex; align-items:center; gap:10px;
+  font-size:12px; color:rgba(160,255,204,0.52);
+  cursor:pointer; user-select:none;
+  padding:12px 16px;
+}
+.toggle-track {
+  width:40px; height:22px;
+  background:rgba(0,255,136,0.12); border:1px solid var(--border);
+  border-radius:11px; position:relative; transition:background 0.2s; flex-shrink:0;
+}
+.toggle-track.on  { background:rgba(0,255,136,0.3); }
+.toggle-thumb {
+  width:16px; height:16px; background:var(--green);
+  border-radius:50%; position:absolute; top:2px; left:2px;
+  transition:transform 0.2s;
+}
+.toggle-track.on .toggle-thumb { transform:translateX(18px); }
+
+/* ══════════ GAME ══════════ */
+#gameScreen { flex-direction:column; background:#030810; }
+
+.hud {
+  width:100%; display:flex; align-items:center;
+  gap: clamp(8px,2vw,14px);
+  padding: 7px clamp(10px,2.5vw,14px);
+  background:rgba(0,8,18,0.96);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.hud-stat { display:flex; flex-direction:column; gap:1px; flex-shrink:0; }
+.hlbl { font-size:clamp(7px,1.8vw,9px); letter-spacing:2px; color:rgba(160,255,204,0.36); white-space:nowrap; }
+.hnum {
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(14px,4vw,20px); font-weight:700; color:#fff; line-height:1.1;
+}
+.hnum.g { color:var(--green); }
+.hnum.r { color:var(--red); }
+
+.load-group { flex:1; display:flex; flex-direction:column; gap:3px; min-width:0; }
+.load-top { display:flex; justify-content:space-between; font-size:clamp(7px,1.8vw,9px); letter-spacing:2px; color:rgba(160,255,204,0.36); }
+.load-bg { height:clamp(8px,2vw,12px); background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:2px; overflow:hidden; }
+.load-fill { height:100%; width:0%; border-radius:2px; transition:width 0.12s,background 0.3s; background:var(--green); }
+
+.xp-group { display:flex; flex-direction:column; gap:2px; flex-shrink:0; }
+.xp-bg { height:5px; width:clamp(36px,8vw,64px); background:rgba(0,170,255,0.1); border:1px solid rgba(0,170,255,0.2); border-radius:3px; overflow:hidden; }
+.xp-fill { height:100%; width:0%; background:var(--blue); border-radius:3px; transition:width 0.3s; }
+
+.lvl-badge {
+  font-family:'Orbitron',sans-serif; font-size:clamp(7px,2vw,9px); font-weight:700;
+  padding:3px clamp(6px,2vw,10px); border:1px solid var(--green);
+  border-radius:2px; color:var(--green); flex-shrink:0;
+  display:flex; flex-direction:column; align-items:center;
+  transition:color 0.4s,border-color 0.4s;
+}
+.lvl-num { font-size:clamp(15px,4.5vw,22px); line-height:1.1; }
+
+#canvas { display:block; flex:1; width:100%; touch-action:none; cursor:crosshair; }
+
+#lvlBanner {
+  position:absolute; top:clamp(56px,11vw,68px); left:50%; transform:translateX(-50%);
+  font-family:'Orbitron',sans-serif; font-size:clamp(12px,3.5vw,17px); font-weight:900;
+  letter-spacing:2px; color:var(--blue); text-shadow:0 0 20px var(--blue);
+  padding:9px clamp(14px,4vw,24px);
+  background:rgba(0,10,30,0.93); border:1px solid var(--blue); border-radius:4px;
+  pointer-events:none; opacity:0; transition:opacity 0.3s;
+  white-space:nowrap; z-index:50;
+}
+#lvlBanner.show { opacity:1; }
+
+/* ══════════ END ══════════ */
+#endScreen {
+  background:radial-gradient(ellipse at 50% 28%, #1a0308 0%, #030810 68%);
+  padding:20px; gap:0;
+}
+.end-icon  { font-size:clamp(44px,10vw,64px); text-align:center; margin-bottom:8px; }
+.end-title {
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(20px,5.5vw,44px); font-weight:900;
+  color:var(--red); letter-spacing:3px;
+  text-shadow:0 0 20px var(--red); text-align:center; margin-bottom:4px;
+}
+.end-sub { font-size:clamp(9px,2.2vw,11px); color:rgba(255,51,85,0.5); letter-spacing:2px; text-align:center; margin-bottom:18px; }
+.report {
+  background:rgba(255,51,85,0.04); border:1px solid rgba(255,51,85,0.2);
+  border-radius:6px; padding:clamp(14px,3.5vw,20px) clamp(16px,4.5vw,26px);
+  width:min(500px,92vw); margin-bottom:18px;
+}
+.report-title { font-size:clamp(8px,2vw,10px); letter-spacing:3px; color:rgba(255,51,85,0.42); margin-bottom:12px; border-bottom:1px solid rgba(255,51,85,0.12); padding-bottom:8px; }
+.rrow { display:flex; justify-content:space-between; align-items:baseline; padding:5px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:clamp(10px,2.8vw,12px); }
+.rk { color:rgba(160,255,204,0.52); }
+.rv { font-family:'Orbitron',sans-serif; font-size:clamp(11px,3.2vw,14px); color:#fff; }
+.rv.g { color:var(--green); } .rv.b { color:var(--red); } .rv.w { color:var(--yellow); }
+.report-sum { margin-top:10px; padding:10px 12px; background:rgba(0,0,0,0.3); border-radius:3px; font-size:clamp(10px,2.6vw,11px); line-height:1.78; color:rgba(160,255,204,0.62); }
+.end-btns { display:flex; gap:12px; }
+.end-btn {
+  font-family:'Orbitron',sans-serif; font-size:clamp(10px,3vw,12px); font-weight:700; letter-spacing:2px;
+  padding:clamp(12px,3vw,14px) clamp(20px,5vw,28px);
+  border:1px solid var(--green); background:transparent;
+  color:var(--green); border-radius:3px; cursor:pointer;
+  transition:all 0.2s; min-height:50px;
+}
+.end-btn.primary { background:var(--green); color:var(--dark); box-shadow:0 0 20px rgba(0,255,136,0.3); }
+.end-btn:active { transform:scale(0.96); }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<!-- START -->
+<div class="screen active" id="startScreen">
+  <p class="eyebrow">// NETWORK SECURITY SIMULATION</p>
+  <div class="title-main">DOS<br>DEFENDER</div>
+  <div class="title-sub">Protect the Server. Survive the Surge.</div>
+
+  <div class="desc-box">
+    You are the <strong>🖥 Server</strong>.<br>
+    Tap <span class="bad">red figures</span> to filter attackers.<br>
+    Let <span class="good">green figures</span> through — blocking them costs you.<br>
+    Difficulty <strong>ramps automatically</strong> as you improve.
+  </div>
+
+  <div class="icons-demo">
+    <div class="icon-card">
+      <svg width="48" height="62" viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg">
+        <!-- attacker icon preview -->
+        <defs><radialGradient id="ha" cx="50%" cy="35%" r="60%"><stop offset="0%" stop-color="#ff4466"/><stop offset="100%" stop-color="#aa1133"/></radialGradient>
+        <linearGradient id="ba" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#cc1133"/><stop offset="100%" stop-color="#880022"/></linearGradient></defs>
+        <rect x="10" y="32" width="28" height="22" rx="5" fill="url(#ba)"/>
+        <circle cx="24" cy="18" r="13" fill="url(#ha)"/>
+        <circle cx="18" cy="17" r="3" fill="rgba(0,0,0,0.7)"/>
+        <circle cx="30" cy="17" r="3" fill="rgba(0,0,0,0.7)"/>
+        <line x1="17" y1="24" x2="31" y2="24" stroke="rgba(0,0,0,0.6)" stroke-width="1.5"/>
+        <rect x="18" y="22" width="4" height="3" rx="0.5" fill="white"/>
+        <rect x="23" y="22" width="4" height="3" rx="0.5" fill="white"/>
+      </svg>
+      <span class="lbl b">ATTACKER</span>
+    </div>
+    <div style="font-size:11px;color:rgba(0,255,136,0.3);padding:0 2px;margin-top:-12px">VS</div>
+    <div class="icon-card">
+      <svg width="48" height="62" viewBox="0 0 48 62" xmlns="http://www.w3.org/2000/svg">
+        <defs><radialGradient id="hu" cx="50%" cy="35%" r="60%"><stop offset="0%" stop-color="#00ff99"/><stop offset="100%" stop-color="#00aa55"/></radialGradient>
+        <linearGradient id="bu" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#00aa55"/><stop offset="100%" stop-color="#006633"/></linearGradient></defs>
+        <rect x="10" y="32" width="28" height="22" rx="5" fill="url(#bu)"/>
+        <circle cx="24" cy="18" r="13" fill="url(#hu)"/>
+        <circle cx="18" cy="16" r="2.5" fill="#003322"/>
+        <circle cx="30" cy="16" r="2.5" fill="#003322"/>
+        <path d="M 18 23 Q 24 28 30 23" stroke="#003322" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+      <span class="lbl g">LEGIT USER</span>
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn">▶ BOOT SERVER</button>
+
+  <label class="sound-row" id="soundToggle">
+    <div class="toggle-track on" id="toggleTrack"><div class="toggle-thumb"></div></div>
+    <span id="soundLabel">SOUND ENABLED</span>
+  </label>
+</div>
+
+<!-- GAME -->
+<div class="screen" id="gameScreen">
+  <div class="hud">
+    <div class="hud-stat">
+      <div class="hlbl">SERVED</div>
+      <div class="hnum g" id="scoreDisplay">0</div>
+    </div>
+    <div class="hud-stat">
+      <div class="hlbl">FALSE✗</div>
+      <div class="hnum r" id="penaltyDisplay">0</div>
+    </div>
+    <div class="load-group">
+      <div class="load-top"><span>SERVER LOAD</span><span id="loadPct">0%</span></div>
+      <div class="load-bg"><div class="load-fill" id="loadBar"></div></div>
+    </div>
+    <div class="hud-stat">
+      <div class="hlbl">FILTERED</div>
+      <div class="hnum" id="filteredDisplay">0</div>
+    </div>
+    <div class="lvl-badge" id="lvlBadge">
+      <span style="font-size:clamp(6px,1.6vw,8px);letter-spacing:1px">LVL</span>
+      <span class="lvl-num" id="levelDisplay">1</span>
+    </div>
+    <div class="xp-group">
+      <div class="hlbl">XP</div>
+      <div class="xp-bg"><div class="xp-fill" id="xpBar"></div></div>
+    </div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div id="lvlBanner">⬆ LEVEL 2</div>
+</div>
+
+<!-- END -->
+<div class="screen" id="endScreen">
+  <div class="end-icon">💥</div>
+  <div class="end-title">SERVER CRASHED</div>
+  <div class="end-sub">// DENIAL OF SERVICE ATTACK SUCCESSFUL</div>
+  <div class="report">
+    <div class="report-title">// PERFORMANCE REPORT — POST-MORTEM</div>
+    <div class="rrow"><span class="rk">Requests Served</span><span class="rv g" id="r-score">0</span></div>
+    <div class="rrow"><span class="rk">Attackers Filtered</span><span class="rv g" id="r-filtered">0</span></div>
+    <div class="rrow"><span class="rk">False Positives</span><span class="rv b" id="r-penalty">0</span></div>
+    <div class="rrow"><span class="rk">Max Level Reached</span><span class="rv w" id="r-level">1</span></div>
+    <div class="rrow"><span class="rk">Peak Server Load</span><span class="rv w" id="r-peakload">0%</span></div>
+    <div class="rrow"><span class="rk">Uptime</span><span class="rv" id="r-uptime">0s</span></div>
+    <div class="report-sum" id="r-summary"></div>
+  </div>
+  <div class="end-btns">
+    <button class="end-btn" id="menuBtn">◀ MENU</button>
+    <button class="end-btn primary" id="retryBtn">↺ RETRY</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ AUDIO ═══════════════════════
+let audioCtx=null, soundOn=true, ambNode=null;
+function getAC(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function tone(freq,type,dur,vol=0.14){
+  if(!soundOn) return;
+  try{ const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);o.type=type;o.frequency.value=freq;
+    g.gain.setValueAtTime(vol,ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dur);
+    o.start();o.stop(ac.currentTime+dur); }catch(e){}
+}
+const sfx={
+  filter:  ()=>{ tone(900,'square',0.05,0.16); setTimeout(()=>tone(450,'square',0.07,0.1),36); },
+  penalty: ()=>{ tone(200,'sawtooth',0.13,0.2); setTimeout(()=>tone(140,'sawtooth',0.09,0.09),65); },
+  request: ()=>  tone(680,'sine',0.04,0.06),
+  alarm:   ()=>{ tone(800,'square',0.065,0.09); setTimeout(()=>tone(590,'square',0.065,0.07),85); },
+  levelup: ()=>{ [523,659,784,1047].forEach((f,i)=>setTimeout(()=>tone(f,'sine',0.14,0.09),i*75)); },
+  crash:   ()=>{ for(let i=0;i<7;i++) setTimeout(()=>tone(70+Math.random()*200,'sawtooth',0.28,0.22),i*52); },
+};
+function startAmbient(){
+  if(!soundOn) return;
+  try{ const ac=getAC();ambNode=ac.createOscillator();const g=ac.createGain();
+    ambNode.connect(g);g.connect(ac.destination);ambNode.type='sine';ambNode.frequency.value=55;g.gain.value=0.016;ambNode.start(); }catch(e){}
+}
+function stopAmbient(){ if(ambNode){try{ambNode.stop();}catch(e){}ambNode=null;} }
+
+// ═══════════════════════ LEVELS ═══════════════════════
+// Each level scales the attack: spawnRate = chance per frame to spawn an
+// entity, zRatio = fraction of spawns that are attackers (red), speed =
+// movement speed, dmg = server load added when an attacker reaches the core.
+const LEVELS=[
+  {spawnRate:0.010,zRatio:0.38,speed:0.52,dmg:7,  label:'BOOTING',    color:'#00ff88'},
+  {spawnRate:0.014,zRatio:0.44,speed:0.63,dmg:8,  label:'WARMING UP', color:'#00ff88'},
+  {spawnRate:0.018,zRatio:0.50,speed:0.76,dmg:9,  label:'INCOMING',   color:'#44ffaa'},
+  {spawnRate:0.024,zRatio:0.54,speed:0.90,dmg:10, label:'PROBING',    color:'#aaff00'},
+  {spawnRate:0.030,zRatio:0.57,speed:1.06,dmg:11, label:'ESCALATING', color:'#ffee00'},
+  {spawnRate:0.037,zRatio:0.60,speed:1.22,dmg:12, label:'FLOODING',   color:'#ffaa00'},
+  {spawnRate:0.044,zRatio:0.63,speed:1.40,dmg:13, label:'STORM',      color:'#ff7700'},
+  {spawnRate:0.052,zRatio:0.66,speed:1.60,dmg:14, label:'BARRAGE',    color:'#ff4400'},
+  {spawnRate:0.062,zRatio:0.69,speed:1.82,dmg:15, label:'ONSLAUGHT',  color:'#ff2222'},
+  {spawnRate:0.076,zRatio:0.72,speed:2.10,dmg:16, label:'ARMAGEDDON', color:'#ff0055'},
+];
+const XP_PER_LEVEL=12;
+let currentLevel=0, xp=0, lvlUpTimer=0;
+function getLvl(){ return LEVELS[Math.min(currentLevel,LEVELS.length-1)]; }
+
+function gainXP(n){
+  xp+=n;
+  while(xp>=XP_PER_LEVEL && currentLevel<LEVELS.length-1){
+    xp-=XP_PER_LEVEL; currentLevel++;
+    doLevelUp();
+  }
+  document.getElementById('xpBar').style.width=(currentLevel>=LEVELS.length-1?100:xp/XP_PER_LEVEL*100)+'%';
+  document.getElementById('levelDisplay').textContent=currentLevel+1;
+  const c=getLvl().color;
+  const b=document.getElementById('lvlBadge');
+  b.style.color=c; b.style.borderColor=c;
+}
+function doLevelUp(){
+  const lvl=getLvl();
+  const el=document.getElementById('lvlBanner');
+  el.textContent=`⬆ LEVEL ${currentLevel+1} — ${lvl.label}`;
+  el.style.color=lvl.color; el.style.borderColor=lvl.color;
+  el.style.textShadow=`0 0 18px ${lvl.color}`;
+  el.classList.add('show'); lvlUpTimer=130;
+  sfx.levelup();
+}
+
+// ═══════════════════════ CANVAS / STATE ═══════════════════════
+const canvas=document.getElementById('canvas');
+const ctx=canvas.getContext('2d');
+let entities=[],particles=[],gameRunning=false;
+let serverLoad=0,score=0,penalties=0,filtered=0;
+let peakLoad=0,startTime=0,shakeFrames=0,frameId=null;
+
+function resizeCanvas(){
+  canvas.width=window.innerWidth;
+  const hudH=document.querySelector('.hud').offsetHeight;
+  canvas.height=window.innerHeight-hudH;
+}
+
+// ═══════════════════════ PERSON ICON DRAWING ═══════════════════════
+// Draws a detailed person figure at (cx,cy) with total height ~2r
+function drawPerson(cx, cy, r, isZombie, alpha){
+  if(alpha===undefined) alpha=1;
+  ctx.save();
+  ctx.globalAlpha=alpha;
+
+  const headR = r*0.36;
+  const bodyW = r*0.54;
+  const bodyH = r*0.46;
+  const bodyY = cy + headR*0.65;
+
+  if(isZombie){
+    // Red glow
+    ctx.shadowColor='#ff2244'; ctx.shadowBlur=12+Math.sin(Date.now()/300)*4;
+
+    // Body gradient
+    const bg=ctx.createLinearGradient(cx-bodyW/2,bodyY,cx+bodyW/2,bodyY+bodyH);
+    bg.addColorStop(0,'#cc1133'); bg.addColorStop(1,'#770018');
+    ctx.fillStyle=bg;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(cx-bodyW/2,bodyY,bodyW,bodyH,[3,3,r*0.25,r*0.25]);
+    else ctx.rect(cx-bodyW/2,bodyY,bodyW,bodyH);
+    ctx.fill();
+
+    // Arms suggestion (shoulders)
+    ctx.fillStyle='#aa1128';
+    ctx.beginPath(); ctx.ellipse(cx-bodyW/2-r*0.08, bodyY+bodyH*0.25, r*0.12, bodyH*0.32, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+bodyW/2+r*0.08, bodyY+bodyH*0.25, r*0.12, bodyH*0.32, 0, 0, Math.PI*2); ctx.fill();
+
+    // Head
+    const hg=ctx.createRadialGradient(cx,cy-headR*0.15,0,cx,cy,headR);
+    hg.addColorStop(0,'#ff4466'); hg.addColorStop(1,'#aa1133');
+    ctx.shadowBlur=16; ctx.fillStyle=hg;
+    ctx.beginPath(); ctx.arc(cx,cy,headR,0,Math.PI*2); ctx.fill();
+
+    // Face — skull
+    ctx.shadowBlur=0;
+    // Eye sockets
+    ctx.fillStyle='rgba(0,0,0,0.72)';
+    ctx.beginPath(); ctx.ellipse(cx-headR*0.28,cy-headR*0.06,headR*0.2,headR*0.24,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+headR*0.28,cy-headR*0.06,headR*0.2,headR*0.24,0,0,Math.PI*2); ctx.fill();
+    // Nose hole
+    ctx.beginPath(); ctx.arc(cx,cy+headR*0.15,headR*0.09,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fill();
+    // Teeth
+    const ty=cy+headR*0.4;
+    ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=headR*0.06;
+    ctx.beginPath(); ctx.moveTo(cx-headR*0.32,ty); ctx.lineTo(cx+headR*0.32,ty); ctx.stroke();
+    const tw=headR*0.13, th=headR*0.12;
+    ctx.fillStyle='rgba(255,255,255,0.9)';
+    for(let t=-1;t<=1;t++){
+      ctx.fillRect(cx+t*headR*0.2-tw/2, ty-th, tw, th);
+    }
+
+    // Label
+    ctx.font=`bold ${Math.max(7,r*0.18)}px 'Share Tech Mono',monospace`;
+    ctx.fillStyle='rgba(255,100,110,0.9)'; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText('ATCK', cx, bodyY+bodyH+2);
+
+  } else {
+    // Green glow
+    ctx.shadowColor='#00ff88'; ctx.shadowBlur=10;
+
+    // Body gradient
+    const bg=ctx.createLinearGradient(cx-bodyW/2,bodyY,cx+bodyW/2,bodyY+bodyH);
+    bg.addColorStop(0,'#00aa55'); bg.addColorStop(1,'#005530');
+    ctx.fillStyle=bg;
+    ctx.beginPath();
+    if(ctx.roundRect) ctx.roundRect(cx-bodyW/2,bodyY,bodyW,bodyH,[3,3,r*0.25,r*0.25]);
+    else ctx.rect(cx-bodyW/2,bodyY,bodyW,bodyH);
+    ctx.fill();
+
+    // Arms
+    ctx.fillStyle='#008844';
+    ctx.beginPath(); ctx.ellipse(cx-bodyW/2-r*0.08, bodyY+bodyH*0.25, r*0.11, bodyH*0.3, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx+bodyW/2+r*0.08, bodyY+bodyH*0.25, r*0.11, bodyH*0.3, 0, 0, Math.PI*2); ctx.fill();
+
+    // Head
+    const hg=ctx.createRadialGradient(cx,cy-headR*0.15,0,cx,cy,headR);
+    hg.addColorStop(0,'#00ff99'); hg.addColorStop(1,'#00aa55');
+    ctx.shadowBlur=12; ctx.fillStyle=hg;
+    ctx.beginPath(); ctx.arc(cx,cy,headR,0,Math.PI*2); ctx.fill();
+
+    // Face
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#003322';
+    ctx.beginPath(); ctx.arc(cx-headR*0.28,cy-headR*0.08,headR*0.13,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+headR*0.28,cy-headR*0.08,headR*0.13,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#003322'; ctx.lineWidth=Math.max(1.2,headR*0.14); ctx.lineCap='round';
+    ctx.beginPath(); ctx.arc(cx,cy+headR*0.06,headR*0.27,0.1,Math.PI-0.1); ctx.stroke();
+
+    // Label
+    ctx.font=`bold ${Math.max(7,r*0.18)}px 'Share Tech Mono',monospace`;
+    ctx.fillStyle='rgba(0,255,136,0.85)'; ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText('USER', cx, bodyY+bodyH+2);
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════ SPAWN ═══════════════════════
+// Entities spawn just off-screen on a random edge and walk toward the
+// server at screen centre. isZombie marks attackers (red) vs users (green).
+function spawnEntity(){
+  const cfg=getLvl();
+  const isZombie=Math.random()<cfg.zRatio;
+  const edge=Math.floor(Math.random()*4);
+  let x,y;
+  if(edge===0){x=Math.random()*canvas.width;y=-55;}
+  else if(edge===1){x=canvas.width+55;y=Math.random()*canvas.height;}
+  else if(edge===2){x=Math.random()*canvas.width;y=canvas.height+55;}
+  else{x=-55;y=Math.random()*canvas.height;}
+  const base=Math.min(canvas.width,canvas.height)*0.044;
+  const r=base*(0.82+Math.random()*0.32);
+  return{
+    x,y,isZombie,speed:cfg.speed*(0.72+Math.random()*0.52),r,
+    wobble:Math.random()*Math.PI*2,wSpd:0.04+Math.random()*0.04,
+    dying:false,deathT:0,opacity:1,trail:[]
+  };
+}
+
+function serverPos(){ return{x:canvas.width/2,y:canvas.height/2}; }
+
+// ═══════════════════════ PARTICLES ═══════════════════════
+function burst(x,y,color,n){
+  n=n||12;
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,s=1.5+Math.random()*3.5;
+    particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,
+      life:1,decay:0.04+Math.random()*0.04,color,size:2.5+Math.random()*5});
+  }
+}
+function tickParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vx*=0.93;p.vy*=0.93;
+    p.life-=p.decay;if(p.life<=0)particles.splice(i,1);
+  }
+}
+function drawParticles(){
+  particles.forEach(p=>{
+    ctx.globalAlpha=p.life*0.85;
+    ctx.fillStyle=p.color;
+    ctx.beginPath();ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);ctx.fill();
+  });
+  ctx.globalAlpha=1;
+}
+
+// ═══════════════════════ BG / SERVER ═══════════════════════
+function drawGrid(){
+  ctx.strokeStyle='rgba(0,255,136,0.033)'; ctx.lineWidth=1;
+  for(let x=0;x<canvas.width;x+=36){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,canvas.height);ctx.stroke();}
+  for(let y=0;y<canvas.height;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(canvas.width,y);ctx.stroke();}
+}
+
+function drawDanger(){
+  if(serverLoad<60) return;
+  const t=Date.now()/300;
+  const i=(serverLoad-60)/40*0.12*(Math.sin(t)*0.45+0.55);
+  ctx.fillStyle=`rgba(255,51,85,${i})`;ctx.fillRect(0,0,canvas.width,canvas.height);
+  if(serverLoad>80){
+    const fl=Math.sin(t*2.2)*0.28+0.62;
+    ctx.font=`bold ${Math.min(10,canvas.width*0.022)}px 'Orbitron',sans-serif`;
+    ctx.fillStyle=`rgba(255,51,85,${fl})`;ctx.textAlign='center';ctx.textBaseline='top';
+    ctx.fillText('⚠ CRITICAL — FILTER ATTACKERS NOW',canvas.width/2,4);
+  }
+}
+
+function drawServer(cx,cy){
+  const t=Date.now()/1000;
+  const pulse=1+Math.sin(t*2)*0.032;
+  const r=Math.min(canvas.width,canvas.height)*0.068*pulse;
+  const danger=serverLoad>65;
+
+  // Danger halo
+  if(danger){
+    const glow=ctx.createRadialGradient(cx,cy,r*0.5,cx,cy,r*2.3);
+    glow.addColorStop(0,'rgba(255,51,85,0.18)');glow.addColorStop(1,'rgba(255,51,85,0)');
+    ctx.fillStyle=glow;ctx.beginPath();ctx.arc(cx,cy,r*2.3,0,Math.PI*2);ctx.fill();
+  }
+
+  // Outer ring
+  ctx.strokeStyle=danger?'rgba(255,51,85,0.45)':'rgba(0,255,136,0.28)';ctx.lineWidth=1.8;
+  ctx.beginPath();ctx.arc(cx,cy,r+r*0.38,0,Math.PI*2);ctx.stroke();
+
+  // Spin ring
+  ctx.save();ctx.translate(cx,cy);ctx.rotate(t*0.65);
+  ctx.strokeStyle='rgba(0,170,255,0.28)';ctx.lineWidth=1.5;ctx.setLineDash([6,11]);
+  ctx.beginPath();ctx.arc(0,0,r+r*0.66,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);ctx.restore();
+
+  // Circle body
+  ctx.shadowColor=danger?'#ff3355':'#00ff88';ctx.shadowBlur=22;
+  ctx.fillStyle='#030f1a';ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Monitor icon inside
+  const sw=r*0.98,sh=r*0.68;
+  const mx=cx-sw/2, my=cy-sh/2-r*0.07;
+  ctx.strokeStyle=danger?'#ff6677':'#00ff88';ctx.lineWidth=Math.max(1.4,r*0.055);
+  ctx.beginPath();
+  if(ctx.roundRect) ctx.roundRect(mx,my,sw,sh,r*0.1);
+  else ctx.rect(mx,my,sw,sh);
+  ctx.fillStyle=danger?'rgba(255,51,85,0.12)':'rgba(0,255,136,0.09)';ctx.fill();ctx.stroke();
+  // Stand
+  ctx.beginPath();
+  ctx.moveTo(cx,my+sh);ctx.lineTo(cx,my+sh+r*0.22);
+  ctx.moveTo(cx-sw*0.22,my+sh+r*0.22);ctx.lineTo(cx+sw*0.22,my+sh+r*0.22);
+  ctx.stroke();
+  // Status blink
+  const blinkOn=Math.floor(Date.now()/500)%2===0;
+  ctx.fillStyle=danger?(blinkOn?'#ff3355':'#880018'):'#00ff88';
+  ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=blinkOn?10:4;
+  ctx.beginPath();ctx.arc(cx,my+sh*0.5,r*0.1,0,Math.PI*2);ctx.fill();
+  ctx.shadowBlur=0;
+}
+
+// ═══════════════════════ ENTITY DRAW ═══════════════════════
+function drawEntity(e){
+  e.wobble+=e.wSpd;
+  const px=e.x+Math.sin(e.wobble)*2.2;
+  const py=e.y+Math.cos(e.wobble*0.75)*2.2;
+  e.trail.push({x:px,y:py});
+  if(e.trail.length>5)e.trail.shift();
+  if(!e.dying){
+    e.trail.forEach((tp,i)=>{
+      drawPerson(tp.x,tp.y,e.r*0.65,e.isZombie,(i/e.trail.length)*0.1);
+    });
+  }
+  drawPerson(px,py,e.r,e.isZombie,e.dying?e.opacity:1);
+}
+
+function drawLines(){
+  const sp=serverPos();
+  entities.forEach(e=>{
+    if(e.dying)return;
+    const d=Math.hypot(e.x-sp.x,e.y-sp.y);
+    if(d>190)return;
+    const a=(1-d/190)*0.11;
+    ctx.strokeStyle=e.isZombie?`rgba(255,51,85,${a})`:`rgba(0,255,136,${a})`;
+    ctx.lineWidth=1;ctx.setLineDash([4,9]);
+    ctx.beginPath();ctx.moveTo(sp.x,sp.y);ctx.lineTo(e.x,e.y);ctx.stroke();
+    ctx.setLineDash([]);
+  });
+}
+
+// ═══════════════════════ LOOP ═══════════════════════
+function loop(){
+  if(!gameRunning)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  let shaking=false;
+  if(shakeFrames>0){ctx.save();ctx.translate((Math.random()-.5)*7,(Math.random()-.5)*7);shakeFrames--;shaking=true;}
+  drawGrid();drawDanger();
+  if(lvlUpTimer>0){lvlUpTimer--;if(lvlUpTimer===0)document.getElementById('lvlBanner').classList.remove('show');}
+
+  const cfg=getLvl();
+  if(Math.random()<cfg.spawnRate) entities.push(spawnEntity());
+
+  const sp=serverPos();
+  const hitR=Math.min(canvas.width,canvas.height)*0.092;
+  for(let i=entities.length-1;i>=0;i--){
+    const e=entities[i];
+    if(e.dying){e.deathT++;e.opacity=Math.max(0,1-e.deathT/14);if(e.deathT>14)entities.splice(i,1);continue;}
+    const dx=sp.x-e.x,dy=sp.y-e.y,dist=Math.hypot(dx,dy);
+    if(dist<hitR){
+      e.dying=true;e.deathT=0;
+      if(e.isZombie){
+        // Attacker breached the server: big load spike, may trigger collapse.
+        serverLoad=Math.min(100,serverLoad+cfg.dmg);shakeFrames=7;
+        burst(sp.x,sp.y,'#ff3355',14);sfx.alarm();
+        if(serverLoad>=100){crashServer();return;}
+      }else{
+        // Legitimate user served: +1 score and +1 XP.
+        score++;burst(sp.x,sp.y,'#00ff88',8);sfx.request();gainXP(1);
+        document.getElementById('scoreDisplay').textContent=score;
+      }
+      updateHUD();continue;
+    }
+    e.x+=(dx/dist)*e.speed;e.y+=(dy/dist)*e.speed;
+  }
+  drawLines();drawParticles();tickParticles();
+  entities.forEach(e=>drawEntity(e));
+  drawServer(sp.x,sp.y);
+  if(shaking)ctx.restore();
+  // Server load slowly recovers every frame — the player must filter
+  // attackers faster than they accumulate, or the server collapses.
+  serverLoad=Math.max(0,serverLoad-0.042);
+  peakLoad=Math.max(peakLoad,serverLoad);
+  updateHUD();
+  frameId=requestAnimationFrame(loop);
+}
+
+function updateHUD(){
+  const l=Math.round(serverLoad);
+  document.getElementById('loadPct').textContent=l+'%';
+  const bar=document.getElementById('loadBar');
+  bar.style.width=l+'%';
+  bar.style.background=l<40?'#00ff88':l<70?'#ffcc00':'#ff3355';
+  document.getElementById('penaltyDisplay').textContent=penalties;
+  document.getElementById('filteredDisplay').textContent=filtered;
+}
+
+// ═══════════════════════ TAP / CLICK ═══════════════════════
+// Tapping an entity "filters" it. Correct call = red attacker (+score/XP).
+// Wrong call = green user blocked: penalty, small load increase, run may end.
+function handleTap(cx,cy){
+  if(!gameRunning)return;
+  const rect=canvas.getBoundingClientRect();
+  const mx=(cx-rect.left)*(canvas.width/rect.width);
+  const my=(cy-rect.top)*(canvas.height/rect.height);
+  for(let i=entities.length-1;i>=0;i--){
+    const e=entities[i];if(e.dying)continue;
+    // Generous hit zone: minimum 30px radius for fingertip accuracy
+    const hitR=Math.max(e.r*1.45,30);
+    if(Math.hypot(mx-e.x,my-e.y)<hitR){
+      e.dying=true;e.deathT=0;
+      if(e.isZombie){filtered++;burst(e.x,e.y,'#ff8800',14);sfx.filter();gainXP(2);}
+      else{penalties++;burst(e.x,e.y,'#aa44ff',10);sfx.penalty();serverLoad=Math.min(100,serverLoad+5);if(serverLoad>=100)setTimeout(crashServer,150);}
+      updateHUD();return;
+    }
+  }
+}
+canvas.addEventListener('click',ev=>{ev.preventDefault();handleTap(ev.clientX,ev.clientY);});
+canvas.addEventListener('touchstart',ev=>{ev.preventDefault();Array.from(ev.changedTouches).forEach(t=>handleTap(t.clientX,t.clientY));},{passive:false});
+
+// ═══════════════════════ CRASH ═══════════════════════
+function crashServer(){
+  gameRunning=false;stopAmbient();sfx.crash();
+  if(frameId)cancelAnimationFrame(frameId);
+  document.getElementById('lvlBanner').classList.remove('show');
+  const elapsed=Math.round((Date.now()-startTime)/1000);
+  const lvl=currentLevel+1;
+  document.getElementById('r-score').textContent=score;
+  document.getElementById('r-filtered').textContent=filtered;
+  document.getElementById('r-penalty').textContent=penalties;
+  document.getElementById('r-level').textContent=lvl;
+  document.getElementById('r-peakload').textContent=Math.round(peakLoad)+'%';
+  document.getElementById('r-uptime').textContent=elapsed+'s';
+  let s='';
+  if(penalties>6) s=`${penalties} legitimate users were wrongly blocked (false positives). Misidentification adds load and degrades trust — red figures are attackers, green figures are users.`;
+  else if(score<4) s=`Only ${score} legitimate requests reached the server before collapse. Attackers overwhelmed defenses before any service baseline was established.`;
+  else if(lvl>=9) s=`Outstanding run to Level ${lvl} (${getLvl().label})! At this scale, no manual firewall survives forever — real-world mitigation requires automated scrubbing centres at ISP level.`;
+  else if(lvl>=6) s=`Strong run to Level ${lvl} (${getLvl().label}). ${filtered} attackers filtered, but the surge intensity eventually exceeded manual response capacity.`;
+  else s=`Reached Level ${lvl}. ${filtered} attackers filtered, but the flood rate increased faster than responses could keep up. Prioritise the fastest-moving figures first.`;
+  if(elapsed<10) s+=' Server fell quickly — tap attacking figures the moment they appear near the edges.';
+  document.getElementById('r-summary').textContent=s;
+  showScreen('endScreen');
+}
+
+// ═══════════════════════ SCREENS / START ═══════════════════════
+function showScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+
+function startGame(){
+  entities=[];particles=[];
+  serverLoad=0;score=0;penalties=0;filtered=0;
+  peakLoad=0;shakeFrames=0;startTime=Date.now();
+  currentLevel=0;xp=0;lvlUpTimer=0;
+  showScreen('gameScreen');resizeCanvas();
+  document.getElementById('scoreDisplay').textContent='0';
+  document.getElementById('xpBar').style.width='0%';
+  document.getElementById('levelDisplay').textContent='1';
+  document.getElementById('lvlBadge').style.color=LEVELS[0].color;
+  document.getElementById('lvlBadge').style.borderColor=LEVELS[0].color;
+  document.getElementById('lvlBanner').classList.remove('show');
+  updateHUD();gameRunning=true;stopAmbient();startAmbient();
+  frameId=requestAnimationFrame(loop);
+}
+
+document.getElementById('startBtn').addEventListener('click',startGame);
+document.getElementById('retryBtn').addEventListener('click',startGame);
+document.getElementById('menuBtn').addEventListener('click',()=>{
+  gameRunning=false;stopAmbient();if(frameId)cancelAnimationFrame(frameId);showScreen('startScreen');
+});
+
+const sToggle=document.getElementById('soundToggle');
+const tTrack=document.getElementById('toggleTrack');
+sToggle.addEventListener('click',()=>{
+  soundOn=!soundOn;tTrack.classList.toggle('on',soundOn);
+  document.getElementById('soundLabel').textContent=soundOn?'SOUND ENABLED':'SOUND OFF';
+  if(!soundOn)stopAmbient();else if(gameRunning)startAmbient();
+});
+
+window.addEventListener('resize',()=>{if(gameRunning)resizeCanvas();});
+document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+
+updateHUD();
+</script>
+</body>
+</html>
