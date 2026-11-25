@@ -2,6 +2,13 @@
 
 A collection of free, browser-based arcade games with a retro cyber/terminal aesthetic. No installs, no sign-ups — just open the game in your browser and play.
 
+## Live site
+
+No install needed — play the games directly on GitHub Pages:
+
+- [Password Asteroids](https://jctansg.github.io/cybergames/password-asteroids.html)
+- [DOS Defender](https://jctansg.github.io/cybergames/dos-defender.html)
+
 ## Games
 
 | Game | File | Description |
@@ -28,13 +35,10 @@ python3 -m http.server 8000
 
 Then open http://localhost:8000/password-asteroids.html or http://localhost:8000/dos-defender.html.
 
-## Deploy to GitHub Pages
+## Self-host (optional)
 
-1. Create a new repository and push this folder's contents.
-2. In the repo settings, enable **Pages** and choose the `main` branch root (or `/docs`).
-3. Each game is available at `https://<user>.github.io/<repo>/password-asteroids.html` and `.../dos-defender.html`.
+These are plain static HTML files — clone the repo and serve the folder with any static server, or deploy it to any static host (Netlify, Vercel, Cloudflare Pages). No build step required.
 
-Alternatively, use any static host (Netlify, Vercel, Cloudflare Pages) — drag the folder in, no build step required.
 
 ## Structure
 
